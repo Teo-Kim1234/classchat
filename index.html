@@ -153,6 +153,12 @@
         </header>
         <div id="message-list" class="message-list"></div>
         <div id="typing-indicator" style="display: none; padding: 5px 20px; font-size: 12px; color: var(--primary-color); font-weight: 600;">입력 중...</div>
+        <div id="image-preview-container" style="display:none; padding: 10px 20px; background: rgba(255,255,255,0.9); border-top: 1px solid var(--glass-border); position: relative;">
+          <div style="position: relative; display: inline-block;">
+            <img id="image-preview-img" src="" style="height: 80px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #ddd;">
+            <button type="button" id="image-preview-cancel" style="position: absolute; top: -5px; right: -5px; width: 24px; height: 24px; background: #ff4757; color: white; border: none; border-radius: 50%; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">X</button>
+          </div>
+        </div>
         <form id="chat-form" class="chat-form">
           <label for="image-input" class="nav-btn-icon" style="padding: 10px; cursor: pointer; font-size: 20px;">📷</label>
           <input type="file" id="image-input" accept="image/*" hidden>

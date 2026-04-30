@@ -885,14 +885,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  chatForm.onsubmit = (e) => {
+  const sendBtn = chatForm.querySelector('button[type="submit"]');
+
+  chatForm.onsubmit = async (e) => {
     e.preventDefault();
     const text = messageInput.value.trim();
-    if (!text) return;
-    const path = currentChatType === "group" ? `group_messages/${currentRoomId}` : `private_messages/${auth.currentUser.uid < currentRoomId ? auth.currentUser.uid + "_" + currentRoomId : currentRoomId + "_" + auth.currentUser.uid}`;
-    db.ref(path).push({ text, senderId: auth.currentUser.uid, sender: currentUser, timestamp: Date.now(), senderUid: auth.currentUser.uid, unread: true });
-    messageInput.value = "";
-    updateTypingState(false);
+    if (!text && !pendingImageFile) return;
+
+    messageInput.disabled = true;
+    sendBtn.disabled = true;
+    const originalBtnText = sendBtn.textContent;
+    sendBtn.textContent = "전송 중...";
+
+    try {
+      const path = currentChatType === "group" ? `group_messages/${currentRoomId}` : `private_messages/${auth.currentUser.uid < currentRoomId ? auth.currentUser.uid + "_" + currentRoomId : currentRoomId + "_" + auth.currentUser.uid}`;
+      
+      if (pendingImageFile) {
+        const compressedBlob = await compressImageForChat(pendingImageFile);
+        await uploadFile(compressedBlob, 'image');
+        pendingImageFile = null;
+        if(imagePreviewContainer) imagePreviewContainer.style.display = "none";
+        imageInput.value = "";
+      }
+
+      if (text) {
+        db.ref(path).push({ text, senderId: auth.currentUser.uid, sender: currentUser, timestamp: Date.now(), senderUid: auth.currentUser.uid, unread: true });
+        messageInput.value = "";
+      }
+    } catch (err) {
+      console.error(err);
+      alert("전송 실패: " + err.message);
+    } finally {
+      messageInput.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.textContent = originalBtnText;
+      messageInput.focus();
+      updateTypingState(false);
+    }
   };
 
   messageInput.oninput = () => updateTypingState(true);
@@ -915,31 +944,95 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Voice / Image Upload ---
   let mediaRecorder = null;
   let chunks = [];
+  let currentStream = null;
   voiceBtn.onclick = async () => {
     if (!mediaRecorder) {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = e => chunks.push(e.data);
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        chunks = [];
-        await uploadFile(blob, 'voice');
-        recordingStatus.style.display = "none";
-        voiceBtn.textContent = "🎤";
-      };
-      mediaRecorder.start();
-      recordingStatus.style.display = "inline";
-      voiceBtn.textContent = "⏹️";
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(currentStream);
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          recordingStatus.style.display = "none";
+          voiceBtn.textContent = "🎤";
+          if (currentStream) {
+            currentStream.getTracks().forEach(t => t.stop());
+            currentStream = null;
+          }
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          chunks = [];
+          try {
+            await uploadFile(blob, 'voice');
+          } catch (err) {
+            console.error("Voice upload error:", err);
+            alert("음성 전송 실패: " + err.message);
+          }
+        };
+        mediaRecorder.start();
+        recordingStatus.style.display = "inline";
+        voiceBtn.textContent = "⏹️";
+      } catch (err) {
+        alert("마이크 접근을 허용해주세요.");
+      }
     } else {
       mediaRecorder.stop();
       mediaRecorder = null;
     }
   };
 
-  imageInput.onchange = async (e) => {
+  let pendingImageFile = null;
+  const imagePreviewContainer = document.getElementById("image-preview-container");
+  const imagePreviewImg = document.getElementById("image-preview-img");
+  const imagePreviewCancel = document.getElementById("image-preview-cancel");
+
+  if (imagePreviewCancel) {
+    imagePreviewCancel.onclick = () => {
+      pendingImageFile = null;
+      if(imagePreviewContainer) imagePreviewContainer.style.display = "none";
+      imageInput.value = "";
+    };
+  }
+
+  imageInput.onchange = (e) => {
     const file = e.target.files[0];
-    if (file) await uploadFile(file, 'image');
+    if (file) {
+      pendingImageFile = file;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if(imagePreviewImg) imagePreviewImg.src = ev.target.result;
+        if(imagePreviewContainer) imagePreviewContainer.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    }
   };
+
+  async function compressImageForChat(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1920;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+          } else {
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   async function uploadFile(file, type) {
     const timestamp = Date.now();
