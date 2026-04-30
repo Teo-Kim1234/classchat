@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class Chat</title>
+  <link rel="icon" href="logo.png">
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- 화면 전체를 덮는 하얀색 랜딩 스크린 -->
+    <div id="landing-screen" class="screen active">
+      <div class="landing-main">
+        <img src="logo.png" alt="Logo" class="landing-logo-big bounce-in">
+        <h1 class="landing-title bounce-in">Class Chat</h1>
+        <p class="landing-subtitle">친구들과 더 가깝게, 더 즐겁게</p>
+        
+        <div class="landing-buttons">
+          <button id="start-btn" class="landing-btn orange">
+            1:1 채팅
+          </button>
+          <button id="group-chat-btn" class="landing-btn blue">
+            단톡방
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 로그인 스크린 -->
+    <div id="login-screen" class="screen">
+      <div class="glass-panel login-panel">
+        <h2>로그인</h2>
+        <p>계정에 접속하여 친구들과 대화하세요.</p>
+        <form id="login-form">
+          <div class="input-group">
+            <label for="login-email-input">이메일</label>
+            <input type="email" id="login-email-input" placeholder="이메일 주소를 입력하세요" required autocomplete="off">
+          </div>
+          <div class="input-group">
+            <label for="login-password-input">비밀번호</label>
+            <div class="input-with-icon">
+              <input type="password" id="login-password-input" placeholder="비밀번호를 입력하세요" required>
+              <button type="button" class="password-toggle-btn" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">로그인</button>
+        </form>
+        <p style="margin-top:20px; font-size:13px;">계정이 없으신가요? <button id="btn-go-to-signup" style="color:var(--primary-color); font-weight:bold; background:none; border:none; cursor:pointer; padding:0; font-family:inherit;">가입하기</button></p>
+      </div>
+    </div>
+
+    <!-- 회원가입 스크린 -->
+    <div id="signup-screen" class="screen">
+      <div class="glass-panel login-panel">
+        <h2>회원가입</h2>
+        <p>처음 오셨군요! 계정을 만들고 시작하세요.</p>
+        <form id="signup-form">
+          <div class="input-group">
+            <label for="signup-name-input">이름</label>
+            <input type="text" id="signup-name-input" placeholder="사용할 이름을 입력하세요" required autocomplete="off">
+          </div>
+          <div class="input-group">
+            <label for="signup-email-input">이메일</label>
+            <input type="email" id="signup-email-input" placeholder="이메일 주소를 입력하세요" required autocomplete="off">
+          </div>
+          <div class="input-group">
+            <label for="signup-password-input">비밀번호</label>
+            <div class="input-with-icon">
+              <input type="password" id="signup-password-input" placeholder="비밀번호를 설정하세요" required>
+              <button type="button" class="password-toggle-btn" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">가입하기</button>
+        </form>
+        <p style="margin-top:20px; font-size:13px;">이미 계정이 있으신가요? <button id="btn-go-to-login" style="color:var(--primary-color); font-weight:bold; background:none; border:none; cursor:pointer; padding:0; font-family:inherit;">로그인하기</button></p>
+      </div>
+    </div>
+
+    <!-- 친구 목록 및 대화 스크린 -->
+    <div id="friends-screen" class="full-screen-chat-wrapper screen">
+      <div class="chat-container">
+        <header class="chat-header">
+          <div style="display:flex; align-items:center;">
+            <button class="nav-btn back-btn" style="margin-right:10px; font-size:12px; padding:6px 12px; background:#eee; color:#333; border:1px solid #ccc;">← 이전</button>
+            <h2>채팅 / 친구</h2>
+          </div>
+        </header>
+        
+        <div style="padding: 20px; border-bottom: 1px solid var(--glass-border); background: white;">
+          <h4 style="margin-bottom: 10px; color: var(--text-dark); font-size:14px;">친구 추가 (이메일 검색)</h4>
+          <div style="display: flex; gap: 10px;">
+            <input type="email" id="friend-search-input" placeholder="친구의 이메일을 입력하세요" style="flex: 1; margin: 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+          </div>
+          
+          <div id="friend-search-result" style="display: none; margin-top: 15px; padding: 15px; background: #fafafa; border-radius: 12px; align-items: center; justify-content: space-between; border:1px solid #eee;">
+             <div style="display: flex; align-items: center; gap: 12px;">
+               <div id="search-result-emoji" class="avatar-sm" style="display: flex; align-items: center; justify-content: center; background: white; font-size:20px;">👤</div>
+               <div>
+                 <div id="search-result-name" style="font-weight: 700; font-size: 15px; color:#333;">이름</div>
+                 <div id="search-result-email" style="font-size: 12px; color: #888; font-weight:400;">이메일</div>
+               </div>
+             </div>
+             <button id="add-friend-btn" class="btn-primary" style="padding: 8px 16px; border-radius: 20px; font-size: 13px; width:auto; margin:0;">친구 추가</button>
+          </div>
+          <div id="friend-search-error" style="display: none; color: #ff4757; font-size: 13px; margin-top: 12px; font-weight:600;"></div>
+        </div>
+
+        <div class="message-list" style="padding: 0; background:#f9f9f9;">
+          <h4 style="padding: 20px 20px 10px 20px; color:#555; background: #fff; margin:0; font-size:13px;">내 친구 목록</h4>
+          <div id="my-friends-list" style="display: flex; flex-direction: column; background:#fff;">
+            <div id="empty-friends-msg" style="padding: 40px 20px; text-align:center; color:#999; font-size:14px;">아직 친구가 없습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 단톡방 목록 스크린 -->
+    <div id="groups-screen" class="full-screen-chat-wrapper screen">
+      <div class="chat-container">
+        <header class="chat-header">
+          <div style="display:flex; align-items:center;">
+            <button class="nav-btn back-btn" style="margin-right:10px; font-size:12px; padding:6px 12px; background:#eee; color:#333; border:1px solid #ccc;">← 이전</button>
+            <h2>채팅 / 단톡방</h2>
+          </div>
+        </header>
+        <div style="padding: 20px; border-bottom: 1px solid var(--glass-border); background: white;">
+          <button id="add-group-btn" class="btn-primary" style="width:100%; padding:14px; border-radius:12px; background:#4a90e2;">+ 새로운 단톡방 만들기</button>
+        </div>
+        <div class="message-list" style="padding: 0; background:#f9f9f9;">
+          <div id="my-groups-list" style="display: flex; flex-direction: column; background:#fff;">
+            <div id="empty-groups-msg" style="padding: 40px 20px; text-align:center; color:#999; font-size:14px;">참여 중인 단톡방이 없습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 채팅방 스크린 -->
+    <div id="chat-screen" class="full-screen-chat-wrapper screen">
+      <div class="chat-container">
+        <header class="chat-header">
+          <div style="display:flex; align-items:center;">
+            <button id="chat-back-btn" class="nav-btn" style="margin-right:10px; font-size:12px; padding:6px 12px; background:#eee; color:#333; border:1px solid #ccc;">← 뒤로</button>
+            <h2 id="chat-header-title">메시지</h2>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="chat-invite-btn" class="btn-primary" style="display:none; width:auto; padding:8px 16px; font-size:13px;">+ 초대</button>
+            <button id="chat-leave-btn" class="btn-secondary" style="display:none; width:auto; padding:8px 16px; font-size:13px;">탈퇴</button>
+            <button id="chat-delete-btn" class="btn-primary danger" style="display:none; width:auto; padding:8px 16px; font-size:13px;">삭제</button>
+          </div>
+        </header>
+        <div id="message-list" class="message-list"></div>
+        <div id="typing-indicator" style="display: none; padding: 5px 20px; font-size: 12px; color: var(--primary-color); font-weight: 600;">입력 중...</div>
+        <form id="chat-form" class="chat-form">
+          <label for="image-input" class="nav-btn-icon" style="padding: 10px; cursor: pointer; font-size: 20px;">📷</label>
+          <input type="file" id="image-input" accept="image/*" hidden>
+          <button type="button" id="voice-btn" class="nav-btn-icon" style="padding: 10px; font-size: 20px;">🎤</button>
+          <span id="recording-status" style="display: none; color: #ff4757; font-weight: bold; font-size: 12px;">녹음 중...</span>
+          <input type="text" id="message-input" placeholder="메시지 입력..." required autocomplete="off">
+          <button type="submit" class="btn-primary" style="width: auto; padding: 0 20px;">전송</button>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 관리자 스크린 -->
+    <div id="admin-screen" class="screen full-screen-chat-wrapper">
+      <div class="chat-container">
+        <header class="chat-header">
+          <button class="nav-btn back-btn">← 이전</button>
+          <h2>🛠️ 관리자 패널</h2>
+        </header>
+        <div class="admin-tabs">
+          <button id="tab-users-btn" class="tab-btn active">사용자</button>
+          <button id="tab-analytics-btn" class="tab-btn">통계</button>
+          <button id="tab-history-btn" class="tab-btn">기록</button>
+        </div>
+        <div class="admin-content message-list">
+          <div id="admin-users-view" class="tab-view active"><div id="admin-users-list"></div></div>
+          <div id="admin-analytics-view" class="tab-view">
+            <div class="analytics-grid">
+              <div class="stat-card"><span>총 유저</span><span id="stat-total-users">0</span></div>
+              <div class="stat-card"><span>총 메시지</span><span id="stat-total-msgs">0</span></div>
+            </div>
+          </div>
+          <div id="admin-history-view" class="tab-view"><div id="admin-message-history"></div></div>
+        </div>
+      </div>
+    </div>
+  </div> <!-- #app END -->
+
+  <!-- 상단 네비 바 -->
+  <nav class="top-nav">
+    <div class="nav-left" style="display: flex; align-items: center; gap: 15px;">
+      <div id="nav-profile-group" style="display:none;">
+        <button id="nav-profile-btn" class="nav-btn" style="border-radius:50%; width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow:hidden;">
+          <img id="nav-avatar-img" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+          <span id="nav-avatar-emoji">👤</span>
+        </button>
+      </div>
+      <div class="nav-logo"><img src="logo.png" alt="Logo"></div>
+    </div>
+    <div class="nav-actions">
+      <!-- 관리자 버튼 숨김 (보안) -->
+    </div>
+  </nav>
+
+  <!-- 모달들 -->
+  <div id="admin-auth-modal" class="modal-overlay">
+    <div class="modal-content glass-panel">
+      <h3>관리자 접속</h3>
+      <div class="input-with-icon" style="margin-top: 15px;">
+        <input type="password" id="admin-password-input" placeholder="비밀번호">
+        <button type="button" class="password-toggle-btn" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+      </div>
+      <div class="modal-actions" style="display:flex; gap:10px; margin-top:20px;">
+        <button id="admin-auth-cancel" class="btn-secondary" style="flex:1;">취소</button>
+        <button id="admin-auth-submit" class="btn-primary" style="flex:1;">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal-overlay">
+    <div class="modal-content glass-panel">
+      <h3>내 프로필</h3>
+      <div class="profile-avatar-container" onclick="document.getElementById('profile-photo-input').click()">
+        <img id="profile-avatar-img" class="avatar-lg" src="" style="display:none;" />
+        <div id="profile-avatar-emoji" class="avatar-emoji-lg">👤</div>
+        <div class="avatar-edit-overlay">사진 변경</div>
+      </div>
+      <input type="file" id="profile-photo-input" accept="image/*" hidden>
+      <input type="text" id="profile-name-input" placeholder="이름 변경" style="margin-top: 15px;">
+      <div class="modal-actions" style="display:flex; gap:10px; margin-top:20px;">
+        <button id="nav-delete-account-btn" class="btn-primary danger" style="flex:1;">회원탈퇴</button>
+        <button id="profile-close-btn" class="btn-primary" style="flex:1;">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase & Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
