@@ -187,6 +187,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (user) {
       setupUser(user);
+      if (wasInitialized && (window.location.hash === "#/login" || window.location.hash === "#/signup")) {
+        navigateTo("#/landing");
+      }
     } else {
       cleanupUser();
     }
