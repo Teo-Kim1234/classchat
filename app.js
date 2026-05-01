@@ -256,6 +256,167 @@ document.addEventListener("DOMContentLoaded", () => {
     db.ref('call_rooms').on('value', (snap) => {
       renderCallRooms(snap.val());
     });
+
+    setupGlobalMessageListeners();
+  }
+
+  const loginTime = Date.now();
+  let listeningChats = {};
+
+  function setupGlobalMessageListeners() {
+    db.ref(`friends/${auth.currentUser.uid}`).on('value', (snap) => {
+      const friends = snap.val() || {};
+      Object.keys(friends).forEach(fUid => {
+        const chatId = auth.currentUser.uid < fUid ? `${auth.currentUser.uid}_${fUid}` : `${fUid}_${auth.currentUser.uid}`;
+        if (!listeningChats[chatId]) {
+          listeningChats[chatId] = true;
+          db.ref(`private_messages/${chatId}`).on('child_added', (msgSnap) => {
+            const msg = msgSnap.val();
+            if (msg && msg.timestamp > loginTime && msg.senderUid !== auth.currentUser.uid) {
+              if (currentChatType !== "private" || currentRoomId !== fUid || !screens.chat.classList.contains("active")) {
+                showInAppNotification(msg, "private", fUid, chatId, msgSnap.key);
+              }
+            }
+          });
+        }
+      });
+    });
+
+    db.ref(`user_groups/${auth.currentUser.uid}`).on('value', (snap) => {
+      const groups = snap.val() || {};
+      Object.keys(groups).forEach(gid => {
+        if (!listeningChats[gid]) {
+          listeningChats[gid] = true;
+          db.ref(`group_messages/${gid}`).on('child_added', (msgSnap) => {
+            const msg = msgSnap.val();
+            if (msg && msg.timestamp > loginTime && msg.senderUid !== auth.currentUser.uid) {
+              if (currentChatType !== "group" || currentRoomId !== gid || !screens.chat.classList.contains("active")) {
+                db.ref(`group_chats/${gid}`).once('value').then(gSnap => {
+                  const gName = gSnap.val() ? gSnap.val().name : "단톡방";
+                  showInAppNotification(msg, "group", gid, gid, msgSnap.key, gName);
+                });
+              }
+            }
+          });
+        }
+      });
+    });
+  }
+
+  function showInAppNotification(msg, type, targetId, dbPathId, msgKey, groupName = "") {
+    let container = document.getElementById("in-app-notification-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "in-app-notification-container";
+      container.style.position = "fixed";
+      container.style.top = "20px";
+      container.style.right = "20px";
+      container.style.width = "320px";
+      container.style.zIndex = "20000";
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.gap = "10px";
+      document.body.appendChild(container);
+    }
+
+    const notifId = `notif-${Date.now()}`;
+    const notif = document.createElement("div");
+    notif.id = notifId;
+    notif.className = "kakao-notification";
+    
+    let displayTitle = type === "group" ? `[${escapeHTML(groupName)}] ${escapeHTML(msg.sender)}` : escapeHTML(msg.sender);
+    let displayMsg = msg.type === "voice" ? "🎤 음성 메시지" : msg.type === "image" ? "📷 사진" : escapeHTML(msg.text);
+
+    notif.innerHTML = `
+      <div class="k-notif-content">
+        <div class="k-notif-avatar">👤</div>
+        <div class="k-notif-text">
+          <div class="k-notif-sender">${displayTitle}</div>
+          <div class="k-notif-msg">${displayMsg}</div>
+        </div>
+      </div>
+      <div class="k-notif-actions">
+        <button class="k-notif-btn k-btn-read">읽음</button>
+        <button class="k-notif-btn k-btn-reply">답장</button>
+      </div>
+      <div class="k-notif-reply-box" style="display:none;">
+        <input type="text" class="k-reply-input" placeholder="답장 입력..." autocomplete="off">
+        <button class="k-reply-send">전송</button>
+      </div>
+    `;
+
+    container.appendChild(notif);
+
+    try {
+      // Notification sound
+      const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+      audio.volume = 0.5;
+      audio.play().catch(e => {}); 
+    } catch(e) {}
+
+    const btnRead = notif.querySelector(".k-btn-read");
+    const btnReply = notif.querySelector(".k-btn-reply");
+    const replyBox = notif.querySelector(".k-notif-reply-box");
+    const replyInput = notif.querySelector(".k-reply-input");
+    const replySend = notif.querySelector(".k-reply-send");
+
+    let timeout = setTimeout(() => {
+      if (notif.parentNode) {
+        notif.style.animation = "slideOutRight 0.3s forwards";
+        setTimeout(() => notif.remove(), 300);
+      }
+    }, 5000);
+
+    notif.onmouseenter = () => clearTimeout(timeout);
+    notif.onmouseleave = () => {
+      if (replyBox.style.display === "none") {
+        timeout = setTimeout(() => {
+          if (notif.parentNode) {
+            notif.style.animation = "slideOutRight 0.3s forwards";
+            setTimeout(() => notif.remove(), 300);
+          }
+        }, 3000);
+      }
+    };
+
+    btnRead.onclick = () => {
+      const path = type === "group" ? `group_messages/${dbPathId}/${msgKey}/readBy/${auth.currentUser.uid}` : `private_messages/${dbPathId}/${msgKey}/unread`;
+      if (type === "private") {
+        db.ref(path).set(false);
+      } else {
+        db.ref(path).set(true);
+      }
+      notif.style.animation = "slideOutRight 0.3s forwards";
+      setTimeout(() => notif.remove(), 300);
+    };
+
+    btnReply.onclick = () => {
+      replyBox.style.display = "flex";
+      replyInput.focus();
+      clearTimeout(timeout);
+    };
+
+    replySend.onclick = () => {
+      const text = replyInput.value.trim();
+      if (text) {
+        const path = type === "group" ? `group_messages/${dbPathId}` : `private_messages/${dbPathId}`;
+        db.ref(path).push({ text, senderId: auth.currentUser.uid, sender: currentUser, timestamp: Date.now(), senderUid: auth.currentUser.uid, unread: true });
+        
+        if (type === "private") db.ref(`private_messages/${dbPathId}/${msgKey}/unread`).set(false);
+        
+        notif.style.animation = "slideOutRight 0.3s forwards";
+        setTimeout(() => notif.remove(), 300);
+      }
+    };
+
+    replyInput.onkeydown = (e) => {
+      if (e.key === "Enter") replySend.click();
+    };
+    
+    notif.querySelector('.k-notif-content').onclick = () => {
+      navigateTo(type === "group" ? `#/chat/group/${targetId}` : `#/chat/private/${targetId}`);
+      notif.remove();
+    };
   }
 
   // --- Specific View Loaders ---
