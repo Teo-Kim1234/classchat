@@ -89,22 +89,12 @@
         </header>
         
         <div style="padding: 20px; border-bottom: 1px solid var(--glass-border); background: white;">
-          <h4 style="margin-bottom: 10px; color: var(--text-dark); font-size:14px;">친구 추가 (이메일 검색)</h4>
-          <div style="display: flex; gap: 10px;">
-            <input type="email" id="friend-search-input" placeholder="친구의 이메일을 입력하세요" style="flex: 1; margin: 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+          <h4 style="margin-bottom: 10px; color: var(--text-dark); font-size:14px;">친구 추가 (이름 검색)</h4>
+          <div style="position: relative;">
+            <input type="text" id="friend-search-input" placeholder="친구의 이름을 입력하세요" style="width: 100%; margin: 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;" autocomplete="off">
+            <div id="friend-search-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 100;">
+            </div>
           </div>
-          
-          <div id="friend-search-result" style="display: none; margin-top: 15px; padding: 15px; background: #fafafa; border-radius: 12px; align-items: center; justify-content: space-between; border:1px solid #eee;">
-             <div style="display: flex; align-items: center; gap: 12px;">
-               <div id="search-result-emoji" class="avatar-sm" style="display: flex; align-items: center; justify-content: center; background: white; font-size:20px;">👤</div>
-               <div>
-                 <div id="search-result-name" style="font-weight: 700; font-size: 15px; color:#333;">이름</div>
-                 <div id="search-result-email" style="font-size: 12px; color: #888; font-weight:400;">이메일</div>
-               </div>
-             </div>
-             <button id="add-friend-btn" class="btn-primary" style="padding: 8px 16px; border-radius: 20px; font-size: 13px; width:auto; margin:0;">친구 추가</button>
-          </div>
-          <div id="friend-search-error" style="display: none; color: #ff4757; font-size: 13px; margin-top: 12px; font-weight:600;"></div>
         </div>
 
         <div class="message-list" style="padding: 0; background:#f9f9f9;">

@@ -501,7 +501,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!u) continue;
       const div = document.createElement("div");
       div.className = "friend-item";
-      div.innerHTML = `<div class="friend-info">👤 <div class="friend-details"><b>${escapeHTML(u.username)}</b></div></div>`;
+      div.innerHTML = `
+        <div class="friend-info">
+          ${u.avatarUrl ? `<img src="${escapeHTML(u.avatarUrl)}" class="avatar-sm" style="width:40px; height:40px;">` : `<div class="avatar-sm" style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#eee; font-size:20px;">👤</div>`}
+          <div class="friend-details">
+            <div class="friend-name">${escapeHTML(u.username)}</div>
+            <div class="friend-email">${escapeHTML(u.email)}</div>
+          </div>
+        </div>
+      `;
       div.onclick = () => navigateTo(`#/chat/private/${fUid}`);
       myFriendsList.appendChild(div);
     }
@@ -1103,5 +1111,134 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("회원가입 실패: " + err.message);
       }
     };
+  }
+
+  // --- Friend Search Autocomplete ---
+  const friendSearchInput = document.getElementById("friend-search-input");
+  const friendSearchDropdown = document.getElementById("friend-search-dropdown");
+
+  let friendSearchTimeout = null;
+
+  if (friendSearchInput) {
+    friendSearchInput.addEventListener("input", (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      
+      if (!query) {
+        friendSearchDropdown.style.display = "none";
+        return;
+      }
+
+      clearTimeout(friendSearchTimeout);
+      friendSearchTimeout = setTimeout(async () => {
+        try {
+          const snap = await db.ref('users').once('value');
+          const users = snap.val();
+          if (!users) return;
+
+          let matches = [];
+          
+          Object.entries(users).forEach(([uid, u]) => {
+            if (uid === auth.currentUser.uid) return; // exclude self
+            
+            const name = (u.username || "").toLowerCase();
+            if (name.includes(query)) {
+              matches.push({
+                uid,
+                username: u.username,
+                email: u.email,
+                avatarUrl: u.avatarUrl || "",
+                exactMatch: name === query,
+                startsWith: name.startsWith(query)
+              });
+            }
+          });
+
+          // Sort: exact matches first, then starts with, then includes
+          matches.sort((a, b) => {
+            if (a.exactMatch && !b.exactMatch) return -1;
+            if (!a.exactMatch && b.exactMatch) return 1;
+            if (a.startsWith && !b.startsWith) return -1;
+            if (!a.startsWith && b.startsWith) return 1;
+            return a.username.localeCompare(b.username);
+          });
+
+          friendSearchDropdown.innerHTML = "";
+          
+          if (matches.length === 0) {
+            friendSearchDropdown.innerHTML = `<div style="padding: 15px; text-align: center; color: #888; font-size: 13px;">결과가 없습니다.</div>`;
+            friendSearchDropdown.style.display = "block";
+            return;
+          }
+
+          matches.slice(0, 5).forEach(m => { // show top 5 matches
+            const item = document.createElement("div");
+            item.style.padding = "10px 15px";
+            item.style.borderBottom = "1px solid #eee";
+            item.style.display = "flex";
+            item.style.alignItems = "center";
+            item.style.justifyContent = "space-between";
+            item.style.cursor = "pointer";
+            item.style.transition = "background-color 0.2s";
+            
+            // Add hover effect
+            item.addEventListener("mouseenter", () => item.style.backgroundColor = "#f9f9f9");
+            item.addEventListener("mouseleave", () => item.style.backgroundColor = "transparent");
+
+            item.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 10px;">
+                ${m.avatarUrl ? `<img src="${escapeHTML(m.avatarUrl)}" class="avatar-sm" style="width: 32px; height: 32px; border-width: 1px;">` : `<div class="avatar-sm" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #eee; font-size: 16px; border-width: 1px;">👤</div>`}
+                <div>
+                  <div style="font-weight: 700; font-size: 14px; color: #333;">${escapeHTML(m.username)}</div>
+                  <div style="font-size: 11px; color: #888;">${escapeHTML(m.email)}</div>
+                </div>
+              </div>
+              <button class="btn-primary" style="padding: 6px 12px; border-radius: 12px; font-size: 12px; width: auto; margin: 0;">추가</button>
+            `;
+
+            const addBtn = item.querySelector("button");
+            addBtn.onclick = async (ev) => {
+              ev.stopPropagation(); // prevent clicking item
+              try {
+                // Add friend logic
+                await db.ref(`friends/${auth.currentUser.uid}/${m.uid}`).set(true);
+                await db.ref(`friends/${m.uid}/${auth.currentUser.uid}`).set(true);
+                
+                alert(`${m.username}님을 친구로 추가했습니다!`);
+                friendSearchInput.value = "";
+                friendSearchDropdown.style.display = "none";
+              } catch (err) {
+                alert("친구 추가 중 오류가 발생했습니다.");
+              }
+            };
+            
+            item.onclick = () => {
+              friendSearchInput.value = m.username;
+              // Optionally do something on item click
+            };
+
+            friendSearchDropdown.appendChild(item);
+          });
+
+          friendSearchDropdown.style.display = "block";
+          
+        } catch (err) {
+          console.error("Search error", err);
+        }
+      }, 300); // 300ms debounce
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!friendSearchInput.contains(e.target) && !friendSearchDropdown.contains(e.target)) {
+        friendSearchDropdown.style.display = "none";
+      }
+    });
+    
+    // Show dropdown when focused if there's text
+    friendSearchInput.addEventListener("focus", () => {
+      if (friendSearchInput.value.trim() && friendSearchDropdown.innerHTML !== "") {
+        friendSearchDropdown.style.display = "block";
+      }
+    });
   }
 });
